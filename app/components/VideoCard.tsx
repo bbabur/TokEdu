@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Title, Paragraph } from 'react-native-paper';
+import { Card, Title, Paragraph, Button } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { Video, ResizeMode } from 'expo-av';
 
@@ -19,29 +19,27 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const router = useRouter();
 
   return (
-    <Card
-      style={{ marginBottom: 16 }}
-      onPress={() =>
-        router.push({
-          pathname: '/video/[id]',
-          params: { id },
-        })
-      }
-    >
-      {videoUrl ? (
+    <Card style={{ marginBottom: 16 }}>
+      {videoUrl && (
         <Video
           source={{ uri: videoUrl }}
           useNativeControls
           resizeMode={ResizeMode.CONTAIN}
           style={{ height: 250 }}
         />
-      ) : (
-        <Card.Cover source={{ uri: 'https://via.placeholder.com/300x200' }} />
       )}
       <Card.Content>
         <Title>{title}</Title>
         <Paragraph>{description}</Paragraph>
       </Card.Content>
+      <Card.Actions>
+        <Button onPress={() => router.push({ pathname: '/edit', params: { id } })}>
+          Düzenle
+        </Button>
+        <Button onPress={() => router.push({ pathname: '/delete', params: { id } })}>
+          Sil
+        </Button>
+      </Card.Actions>
     </Card>
   );
 };

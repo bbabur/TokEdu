@@ -16,6 +16,7 @@ import {
 import { collection, addDoc } from 'firebase/firestore';
 import { db, storage } from './lib/firebaseConfig';
 import uuid from 'react-native-uuid';
+import { useRouter } from 'expo-router';
 
 export default function UploadScreen() {
   const [title, setTitle] = useState('');
@@ -36,71 +37,73 @@ export default function UploadScreen() {
     }
   };
 
-  const handleUpload = async () => {
-    if (!title || !videoUri) return;
+  const router = useRouter(); // üstte useRouter import edilmiş olmalı.
 
-    setUploading(true);
-    setSnackbarVisible(true);
-    setProgress(0);
+const handleUpload = async () => {
+  if (!title || !videoUri) return;
 
-    let videoBlob;
-    try {
-      const response = await fetch(videoUri!);
-      videoBlob = await response.blob();
-    } catch (err) {
-      console.error('Video blob alınamadı:', err);
-      alert('Video alınırken hata oluştu.');
+  setUploading(true);
+  setProgress(0);
+
+  let videoBlob;
+  try {
+    const response = await fetch(videoUri!);
+    videoBlob = await response.blob();
+  } catch (err) {
+    console.error('Video blob alınamadı:', err);
+    alert('Video alınırken hata oluştu.');
+    setUploading(false);
+    return;
+  }
+
+  const videoId = uuid.v4();
+  const storageRef = ref(storage, `videos/${videoId}.mp4`);
+  const uploadTask = uploadBytesResumable(storageRef, videoBlob);
+
+  uploadTask.on(
+    'state_changed',
+    (snapshot) => {
+      const percent = snapshot.bytesTransferred / snapshot.totalBytes;
+      setProgress(percent);
+    },
+    (error) => {
+      console.error('Upload error:', error);
+      alert('Yükleme sırasında hata oluştu.');
       setUploading(false);
-      setSnackbarVisible(false);
-      return;
-    }
+    },
+    async () => {
+      try {
+        const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
 
-    const videoId = uuid.v4();
-    const storageRef = ref(storage, `videos/${videoId}.mp4`);
-    const uploadTask = uploadBytesResumable(storageRef, videoBlob);
+        // BURAYA DİKKAT: Firestore'a ekliyoruz
+        await addDoc(collection(db, 'videos'), {
+          title,
+          description,
+          videoUrl: downloadUrl,
+        });
 
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const percent = snapshot.bytesTransferred / snapshot.totalBytes;
-        setProgress(percent);
-      },
-      (error) => {
-        console.error('Upload error:', error);
+        // İşlem tamamlandı mesajı:
+        alert('✅ Video başarıyla yüklendi!');
+
+        // State temizliği:
         setUploading(false);
-        setSnackbarVisible(false);
-      },
-      async () => {
-        try {
-          console.log('⏳ getDownloadURL başlıyor...');
-          const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
-          console.log('✅ getDownloadURL tamam:', downloadUrl);
-      
-          console.log('📦 Firestore addDoc başlıyor...');
-          await addDoc(collection(db, 'videos'), {
-            title,
-            description,
-            videoUrl: downloadUrl,
-          });
-          console.log('✅ Firestore addDoc tamam');
-      
-          setUploading(false);
-          setSnackbarVisible(false);
-          setProgress(0);
-          setTitle('');
-          setDescription('');
-          setVideoUri(null);
-          alert('✅ Video başarıyla yüklendi!');
-        } catch (err) {
-          console.error('🔥 TAMAMLANMA HATASI:', err);
-          alert('⚠️ Video yüklendi ama kayıt yapılamadı.');
-          setUploading(false);
-          setSnackbarVisible(false);
-        }
+        setProgress(0);
+        setTitle('');
+        setDescription('');
+        setVideoUri(null);
+
+        // ✅ Anasayfaya otomatik dön:
+        router.replace('/');
+
+      } catch (err) {
+        console.error('Firestore kayıt hatası:', err);
+        alert('Video yüklendi ama Firestore kaydı yapılamadı.');
+        setUploading(false);
       }
-      
-    );
-  };
+    }
+  );
+};
+
 
   return (
     <View style={styles.container}>
