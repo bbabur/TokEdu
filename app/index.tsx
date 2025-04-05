@@ -1,7 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Dimensions, FlatList, TouchableOpacity } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Dimensions,
+  FlatList,
+  TouchableOpacity,
+} from 'react-native';
 import { Text, IconButton } from 'react-native-paper';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, increment } from 'firebase/firestore';
 import { useRouter } from 'expo-router';
 import { db } from './lib/firebaseConfig';
 import { Video, ResizeMode } from 'expo-av';
@@ -15,6 +21,7 @@ type VideoItem = {
   id: string;
   title: string;
   videoUrl: string;
+  likes: number;
 };
 
 export default function Index() {
@@ -30,15 +37,26 @@ export default function Index() {
         id: doc.id,
         title: doc.data().title,
         videoUrl: doc.data().videoUrl,
+        likes: doc.data().likes || 0,
       }));
       setVideos(videoList);
     };
 
     fetchVideos();
-
-    // Navigation bar'ı siyah yap
     SystemUI.setBackgroundColorAsync('black');
   }, []);
+
+  const handleLike = async (videoId: string) => {
+    const videoRef = doc(db, 'videos', videoId);
+    await updateDoc(videoRef, {
+      likes: increment(1),
+    });
+    setVideos(prev =>
+      prev.map(v =>
+        v.id === videoId ? { ...v, likes: v.likes + 1 } : v
+      )
+    );
+  };
 
   const renderItem = ({ item, index }: { item: VideoItem; index: number }) => (
     <TouchableOpacity
@@ -63,14 +81,36 @@ export default function Index() {
         useNativeControls={false}
         style={styles.video}
       />
+
+      {/* Açıklama */}
+      <View style={styles.descriptionContainer}>
+        <Text style={styles.videoTitle}>{item.title}</Text>
+      </View>
+
+      {/* Beğeni & Yorum */}
+      <View style={styles.actionButtons}>
+        <IconButton
+          icon="heart"
+          iconColor="white"
+          size={30}
+          onPress={() => handleLike(item.id)}
+        />
+        <Text style={styles.actionText}>{item.likes}</Text>
+
+        <IconButton
+          icon="comment-outline"
+          iconColor="white"
+          size={30}
+          onPress={() => router.push('/comments')}
+        />
+        <Text style={styles.actionText}>Yorum</Text>
+      </View>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      {/* StatusBar: Üst barı siyah ve beyaz ikonlu yapar */}
       <StatusBar style="light" backgroundColor="black" translucent={false} />
-
       <View style={styles.topTabs}>
         <Text
           style={[styles.tabText, activeTab === 'foryou' && styles.activeTab]}
@@ -138,9 +178,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   video: {
-    height: Dimensions.get('window').height * 0.92,
+    height: height * 0.92,
     width: '100%',
     marginTop: 20,
     marginBottom: 20,
+  },
+  descriptionContainer: {
+    position: 'absolute',
+    bottom: 100,
+    left: 10,
+    right: 80,
+  },
+  videoTitle: {
+    color: 'white',
+    fontSize: 16,
+  },
+  actionButtons: {
+    position: 'absolute',
+    bottom: 100,
+    right: 10,
+    alignItems: 'center',
+  },
+  actionText: {
+    color: 'white',
+    fontSize: 14,
+    marginBottom: 10,
   },
 });

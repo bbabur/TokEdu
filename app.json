@@ -2,12 +2,18 @@
   "expo": {
     "name": "TokEdu",
     "slug": "TokEdu",
+    "owner": "bbabur",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "extra": {
+      "devServer": {
+        "port": 8081
+      }
+    },
     "ios": {
       "supportsTablet": true
     },

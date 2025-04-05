@@ -2,12 +2,14 @@ import React, { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as SystemUI from 'expo-system-ui';
+import { UserProvider } from './contexts/UserContext';
 export default function TabLayout() {
   useEffect(() => {
     // Navigation bar'ı siyah yap
     SystemUI.setBackgroundColorAsync('black');
   }, []);
   return (
+    <UserProvider>
     <Tabs
     screenOptions={{
       tabBarStyle: {
@@ -76,7 +78,10 @@ export default function TabLayout() {
       <Tabs.Screen name="delete" options={{ href: null }} />     
       <Tabs.Screen name="components/VideoCard" options={{ href: null }} />
       <Tabs.Screen name="video/[id]" options={{ href: null }} />
-      <Tabs.Screen name="search" options={{ href: null }} />
+      <Tabs.Screen name="search" options={{ href: null }} />     
+      <Tabs.Screen name="GoogleLogin" options={{ href: null }} />
+      <Tabs.Screen name="login" options={{ href: null }} />
     </Tabs>
+    </UserProvider>
   );
 }
