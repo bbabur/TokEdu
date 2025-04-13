@@ -81,6 +81,7 @@ export default function TabLayout() {
       <Tabs.Screen name="search" options={{ href: null }} />     
       <Tabs.Screen name="GoogleLogin" options={{ href: null }} />
       <Tabs.Screen name="login" options={{ href: null }} />
+      <Tabs.Screen name="comments" options={{ href: null }} />
     </Tabs>
     </UserProvider>
   );
