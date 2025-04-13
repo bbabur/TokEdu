@@ -101,7 +101,10 @@ export default function Index() {
           icon="comment-outline"
           iconColor="white"
           size={30}
-          onPress={() => router.push('/comments')}
+          onPress={() => router.push({
+            pathname: '/comments',
+            params: { videoId: item.id }
+          })}
         />
         <Text style={styles.actionText}>Yorum</Text>
       </View>
