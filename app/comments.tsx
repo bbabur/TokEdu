@@ -2,13 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from './lib/firebaseConfig';
-import { addComment, getCommentsByVideoId, Comment } from './services/commentService';
+import { getVideoById, getComments, addComment } from './lib/supabaseConfig';
 import { useAuth } from './contexts/AuthContext';
 import CommentInput from './components/CommentInput';
 import CommentList from './components/CommentList';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+export interface Comment {
+  id: string;
+  text: string;
+  user_id: string;
+  video_id: string;
+  created_at: string;
+  user: {
+    id: string;
+    email: string;
+    raw_user_meta_data: {
+      name: string;
+      picture: string;
+    };
+  };
+}
 
 export default function CommentsScreen() {
   const { videoId } = useLocalSearchParams<{ videoId: string }>();
@@ -26,10 +40,13 @@ export default function CommentsScreen() {
 
     const fetchVideo = async () => {
       try {
-        const docRef = doc(db, 'videos', videoId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setVideoData(docSnap.data());
+        const { data, error } = await getVideoById(videoId);
+        if (error) {
+          console.error('Video yüklenirken hata:', error);
+          return;
+        }
+        if (data) {
+          setVideoData(data);
         }
       } catch (error) {
         console.error('Video yüklenirken hata:', error);
@@ -39,8 +56,17 @@ export default function CommentsScreen() {
     const loadComments = async () => {
       try {
         setIsLoading(true);
-        const videoComments = await getCommentsByVideoId(videoId);
-        setComments(videoComments);
+        const { data, error } = await getComments(videoId);
+        if (error) {
+          console.error('Yorumlar yüklenirken hata:', error);
+          return;
+        }
+        if (!data) {
+          setComments([]);
+          return;
+        }
+        // Type assertion since we know the shape from the database
+        setComments(data as unknown as Comment[]);
       } catch (error) {
         console.error('Yorumlar yüklenirken hata:', error);
       } finally {
@@ -56,13 +82,34 @@ export default function CommentsScreen() {
     if (!user || !videoId) return;
 
     try {
-      const newComment = await addComment({
+      const { data, error } = await addComment({
         text,
-        username: user.displayName || 'Anonim',
-        userId: user.uid,
-        videoId,
+        user_id: user.id,
+        video_id: videoId,
       });
-      setComments([newComment, ...comments]);
+
+      if (error) {
+        console.error('Yorum eklenirken hata:', error);
+        return;
+      }
+      if (data) {
+        const newComment: Comment = {
+          id: (data as any).id,
+          text: (data as any).text,
+          user_id: (data as any).user_id,
+          video_id: (data as any).video_id,
+          created_at: (data as any).created_at,
+          user: {
+            id: user.id,
+            email: user.email || '',
+            raw_user_meta_data: {
+              name: user.user_metadata?.name || 'Kullanıcı',
+              picture: user.user_metadata?.picture || 'https://via.placeholder.com/150'
+            }
+          }
+        };
+        setComments([newComment, ...comments]);
+      }
     } catch (error) {
       console.error('Yorum eklenirken hata:', error);
     }

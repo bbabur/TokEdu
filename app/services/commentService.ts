@@ -1,33 +1,57 @@
-import { db } from '../lib/firebaseConfig';
-import { collection, addDoc, query, where, getDocs, orderBy, serverTimestamp } from 'firebase/firestore';
+import { supabase } from '../lib/supabaseConfig';
 
-export type Comment = {
+export interface Comment {
   id: string;
+  text: string;
+  user_id: string;
+  video_id: string;
+  username: string;
+  created_at: string;
+}
+
+export const getCommentsByVideoId = async (videoId: string): Promise<Comment[]> => {
+  const { data, error } = await supabase
+    .from('comments')
+    .select('*')
+    .eq('video_id', videoId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching comments:', error);
+    return [];
+  }
+
+  return data || [];
+};
+
+export const addComment = async ({
+  text,
+  username,
+  userId,
+  videoId,
+}: {
   text: string;
   username: string;
   userId: string;
   videoId: string;
-  timestamp: any;
-};
+}): Promise<Comment | null> => {
+  const { data, error } = await supabase
+    .from('comments')
+    .insert([
+      {
+        text,
+        user_id: userId,
+        video_id: videoId,
+        username,
+      },
+    ])
+    .select()
+    .single();
 
-export const addComment = async (comment: Omit<Comment, 'id' | 'timestamp'>) => {
-  const docRef = await addDoc(collection(db, 'comments'), {
-    ...comment,
-    timestamp: serverTimestamp(),
-  });
-  return { ...comment, id: docRef.id, timestamp: new Date() };
-};
+  if (error) {
+    console.error('Error adding comment:', error);
+    return null;
+  }
 
-export const getCommentsByVideoId = async (videoId: string): Promise<Comment[]> => {
-  const commentsQuery = query(
-    collection(db, 'comments'),
-    where('videoId', '==', videoId),
-    orderBy('timestamp', 'desc')
-  );
-  const querySnapshot = await getDocs(commentsQuery);
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-    timestamp: doc.data().timestamp?.toDate() || new Date(),
-  })) as Comment[];
+  return data;
 }; 

@@ -1,28 +1,30 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { Text } from 'react-native-paper';
+import { useRouter } from 'expo-router';
+import { useAuth } from './contexts/AuthContext';
 import GoogleLogin from './GoogleLogin';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function LoginScreen() {
-  const [user, setUser] = useState<any>(null);
+export default function Login() {
+  const router = useRouter();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      router.replace('/');
+    }
+  }, [user, router]);
 
   return (
     <View style={styles.container}>
-      {user ? (
-        <View style={styles.welcomeContainer}>
-          <MaterialCommunityIcons name="account-circle" size={80} color="#ff4040" />
-          <Text style={styles.welcomeText}>Hoş geldin, {user.displayName}</Text>
-        </View>
-      ) : (
+      <View style={styles.content}>
+        <Text style={styles.title}>TokEdu'ya Hoş Geldiniz</Text>
+        <Text style={styles.subtitle}>Eğitim içeriklerini keşfedin ve paylaşın</Text>
+        
         <View style={styles.loginContainer}>
-          <View style={styles.logoContainer}>
-            <MaterialCommunityIcons name="video" size={80} color="#ff4040" />
-            <Text style={styles.appName}>TokEdu</Text>
-          </View>
-          <Text style={styles.slogan}>Eğitim İçeriklerini Keşfet</Text>
-          <GoogleLogin onLogin={setUser} />
+          <GoogleLogin />
         </View>
-      )}
+      </View>
     </View>
   );
 }
@@ -32,37 +34,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#121212',
   },
-  loginContainer: {
+  content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  appName: {
-    color: 'white',
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginTop: 10,
-  },
-  slogan: {
-    color: 'white',
-    fontSize: 18,
-    marginBottom: 40,
-    opacity: 0.8,
-  },
-  welcomeContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  welcomeText: {
-    color: 'white',
+  title: {
     fontSize: 24,
-    marginTop: 20,
     fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+  loginContainer: {
+    width: '100%',
+    maxWidth: 300,
   },
 });
